@@ -18,12 +18,19 @@ in separate router modules under `app/routers/` as the project grows.
 """
 
 from fastapi import FastAPI
+from app.routers.users import router as users_router
+from app.routers.books import router as books_router
+from app.routers.feed import router as feed_router
 
 app = FastAPI(
     title="Social Book Catalog",
     description="A Letterboxd-style platform for books",
     version="0.1.0",
 )
+
+app.include_router(users_router)
+app.include_router(books_router)
+app.include_router(feed_router)
 
 
 @app.get("/health")

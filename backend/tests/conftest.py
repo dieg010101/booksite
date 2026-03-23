@@ -22,11 +22,14 @@ How this works:
    means tests don't pollute each other — every test starts with empty
    tables (except for the schema structure).
 
+4. `client` (function-scoped): A FastAPI TestClient wired to a rolled-back
+   DB session. Used by the router tests (test_users_router.py, etc.).
+
 Requirements:
 ─────────────
 • PostgreSQL running (docker compose up db)
 • The ltree extension must be available (it is in the official postgres:15 image)
-• pip install pytest psycopg2-binary sqlalchemy uuid6
+• pip install pytest psycopg2-binary sqlalchemy uuid6 httpx
 
 Environment:
 ────────────
@@ -132,3 +135,69 @@ def db_session(test_engine, tables):
     session.close()
     transaction.rollback()
     connection.close()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROUTER TEST FIXTURES & HELPERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from fastapi.testclient import TestClient
+
+from app.database import get_db
+from app.main import app
+
+
+@pytest.fixture(scope="function")
+def client(test_engine, tables):
+    """
+    FastAPI TestClient wired to a rolled-back DB session.
+
+    Same isolation pattern as db_session above: each test gets its own
+    transaction that is rolled back after the test completes. The FastAPI
+    dependency override ensures all route handlers use this session instead
+    of the production SessionLocal.
+    """
+    connection = test_engine.connect()
+    transaction = connection.begin()
+    Session = sessionmaker(bind=connection)
+    session = Session()
+
+    def _override_get_db():
+        try:
+            yield session
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = _override_get_db
+    with TestClient(app) as c:
+        yield c
+
+    app.dependency_overrides.clear()
+    session.close()
+    transaction.rollback()
+    connection.close()
+
+
+def make_user(client, **overrides):
+    """Register a user via the API and return the response JSON."""
+    payload = {
+        "username": "testuser",
+        "email": "test@example.com",
+        "password": "SecurePass1!",
+        "location": "California",
+    }
+    payload.update(overrides)
+    resp = client.post("/api/v1/users/register", json=payload)
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+def auth_header(client, email="test@example.com", password="SecurePass1!"):
+    """Login via the API and return an Authorization header dict."""
+    resp = client.post(
+        "/api/v1/users/login",
+        json={"email": email, "password": password},
+    )
+    assert resp.status_code == 200, resp.text
+    token = resp.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
