@@ -106,6 +106,7 @@ class TestLogin:
         assert resp.status_code == 200
         body = resp.json()
         assert "access_token" in body
+        assert "refresh_token" in body
         assert body["token_type"] == "bearer"
 
     def test_login_wrong_password(self, client):

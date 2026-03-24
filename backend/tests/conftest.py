@@ -42,6 +42,9 @@ point TEST_DATABASE_URL to it.
 
 import os
 
+os.environ["RATE_LIMIT_PER_MINUTE"] = "9999"
+os.environ["RATE_LIMIT_AUTH_PER_MINUTE"] = "9999"
+
 import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker

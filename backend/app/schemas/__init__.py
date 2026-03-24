@@ -32,6 +32,12 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RefreshRequest(BaseModel):
+    """POST /users/refresh body."""
+
+    refresh_token: str
+
+
 # ---------------------------------------------------------------------------
 # Response bodies
 # ---------------------------------------------------------------------------
@@ -57,7 +63,10 @@ class UserPrivate(UserRead):
 
 
 class TokenResponse(BaseModel):
+    """Login/refresh response with both tokens."""
+
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
 
 

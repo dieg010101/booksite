@@ -3,6 +3,7 @@
 from app.schemas import (
     LoginRequest,
     MessageResponse,
+    RefreshRequest,
     TokenResponse,
     UserCreate,
     UserPrivate,
@@ -13,6 +14,7 @@ from app.schemas import (
 __all__ = [
     "LoginRequest",
     "MessageResponse",
+    "RefreshRequest",
     "TokenResponse",
     "UserCreate",
     "UserPrivate",
